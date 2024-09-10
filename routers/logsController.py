@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from models import logsEntity
 from db.database import get_db
-from schemas.logDTO import LogDTO  # Make sure to define LogDTO schema in your schemas
+from schemas.logDTO import LogDTO  
 
 router = APIRouter()
 
@@ -24,17 +24,15 @@ def get_log_by_id(log_id:int,db:Session =Depends(get_db)):
 # POST: Create a new log
 @router.post("/logs", response_model=LogDTO)
 def create_log(log: LogDTO, db: Session = Depends(get_db)):
-    db_log = logsEntity.Log(
-    rows = log.rows,
-    log_of = log.log_of,
-    file_name = log.file_name,
-    file_type = log.file_type
+    db_log = logsEntity(
+        rows=log.rows,
+        log_of=log.log_of,
+        file_name=log.file_name,
+        file_type=log.file_type
     )
-
     db.add(db_log)
     db.commit()
     db.refresh(db_log)
-
     return db_log
 
 # DELETE: Delete a log by ID

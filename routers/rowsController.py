@@ -43,7 +43,33 @@ async def create_row(row: RowDTO, db: Session = Depends(get_db)):
     db.refresh(db_row)
 
     return db_row
+# POST: Create All Rows
+@router.post("/rows/all", response_model=List[RowDTO])
+async def create_rows(rows: List[RowDTO], db: Session = Depends(get_db)):
+    created_rows = []
+    
+    for row in rows:
+        db_row = rowEntity.Row(
+            ip=row.ip,
+            url=row.url,
+            dateTime=datetime.fromisoformat(row.dateTime),
+            method=row.method,
+            status=row.status,
+            referer=row.referer,
+            user_agent=row.user_agent,
+            log_id=row.log_id
+        )
+        db.add(db_row)
+        created_rows.append(db_row)
 
+    db.commit()
+
+    # Refresh each row to ensure the latest state is reflected
+    for row in created_rows:
+        db.refresh(row)
+    
+    return created_rows
+        
 # DELETE: Delete a row by ID
 @router.delete("/rows/{row_id}", response_model=RowDTO)
 def delete_row(row_id: int, db: Session = Depends(get_db)):
