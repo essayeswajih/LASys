@@ -4,16 +4,18 @@ from sqlalchemy.orm import Session
 from typing import List
 from models.rowEntity import Row   # Assuming this contains your Row model
 from db.database import get_db
-from schemas.rowDTO import RowDTO
+from schemas.rowDTO import RowDTO , RowCreate
 
 router = APIRouter()
 
 # GET: Fetch all rows
 @router.get("/rows", response_model=List[RowDTO])
 def read_rows(db: Session = Depends(get_db)):
-    rows = db.query(Row).all()
-    print(rows)
-    return rows
+    try:
+        rows = db.query(Row).all()
+        return rows
+    except :
+        raise HTTPException(status_code=404, detail="No rows found")  # Changed to
 
 # GET: Find rows by log_id
 @router.get("/rows/log/{log_id}", response_model=List[RowDTO])
@@ -27,23 +29,41 @@ def find_rows_by_log_id(log_id: int, db: Session = Depends(get_db)):
 
 # POST: Create a new row
 @router.post("/rows", response_model=RowDTO)
-async def create_row(row: RowDTO, db: Session = Depends(get_db)):
-    db_row = Row(
-        ip=row.ip,
-        url=row.url,
-        dateTime=datetime.fromisoformat(row.dateTime),  # Correcting the dateTime conversion
-        method=row.method,
-        status=row.status,
-        referer=row.referer,
-        user_agent=row.user_agent,
-        log_id=row.log_id  # Make sure log_id exists in the RowDTO schema
-    )
+async def create_row(row: RowCreate, db: Session = Depends(get_db)):
+    try :
+        db_row = Row(
+            ip=row.ip,
+            url=row.url,
+            dateTime=datetime.fromisoformat(row.dateTime),  # Correcting the dateTime conversion
+            method=row.method,
+            status=row.status,
+            referer=row.referer,
+            user_agent=row.user_agent,
+            log_id=row.log_id  # Make sure log_id exists in the RowDTO schema
+        )
 
-    db.add(db_row)
-    db.commit()
-    db.refresh(db_row)
+        db.add(db_row)
+        db.commit()
+        db.refresh(db_row)
 
-    return db_row
+        return RowDTO(
+            ip=db_row.ip,
+            url=db_row.url,
+            dateTime=db_row.dateTime.isoformat(),  # Ensure datetime is returned as ISO string
+            method=db_row.method,
+            status=db_row.status,
+            referer=db_row.referer,
+            user_agent=db_row.user_agent,
+            log_id=db_row.log_id
+        )
+    except Exception as e:
+        db.rollback()  # Ensure to rollback the transaction if an error occurs
+        print(f"Error occurred: {e}")  # Log the exception for debugging
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while creating the log"
+        )
+
 # POST: Create All Rows
 @router.post("/rows/all", response_model=List[RowDTO])
 async def create_rows(rows: List[RowDTO], db: Session = Depends(get_db)):

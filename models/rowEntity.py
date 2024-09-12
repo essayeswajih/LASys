@@ -4,7 +4,7 @@ from db.database import Base
 
 class Row(Base):
     __tablename__ = "row"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     ip = Column(String, index=True)
     url = Column(String)
     dateTime = Column(DateTime)

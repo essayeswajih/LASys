@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from models import logsEntity
 from db.database import get_db
-from schemas.logDTO import LogDTO  
+from schemas.logDTO import LogDTO ,LogCreate
 
 router = APIRouter()
 
@@ -25,11 +25,10 @@ def get_log_by_id(log_id:int,db:Session =Depends(get_db)):
     return log
 
 # POST: Create a new log
-@router.post("saveLogs", response_model=LogDTO)
-def create_log(log: LogDTO, db: Session = Depends(get_db)):
+@router.post("/logs", response_model=LogCreate)
+def create_log(log: LogCreate, db: Session = Depends(get_db)):
     try:
-        db_log = logsEntity(
-            rows=log.rows,
+        db_log = logsEntity.Log(
             log_of=log.log_of,
             file_name=log.file_name,
             file_type=log.file_type
