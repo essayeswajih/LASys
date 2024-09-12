@@ -8,11 +8,14 @@ from schemas.logDTO import LogDTO
 router = APIRouter()
 
 # GET: get all logs
-@router.get("logs",response_model=List[LogDTO])
-def find_all_logs(db:Session = Depends(get_db)):
-    logs = db.query(logsEntity.Log).all()
-    return logs
-
+@router.get("/logs", response_model=List[LogDTO])  # Added leading "/"
+def find_all_logs(db: Session = Depends(get_db)):
+    try :
+        logs = db.query(logsEntity.Log).all()
+        return logs
+    except :
+        raise HTTPException(status_code=404, detail="No logs found")  # Changed to
+    
 # GET: get a log by ID
 @router.get("logs/{log_id}",response_model=LogDTO)
 def get_log_by_id(log_id:int,db:Session =Depends(get_db)):
@@ -22,18 +25,26 @@ def get_log_by_id(log_id:int,db:Session =Depends(get_db)):
     return log
 
 # POST: Create a new log
-@router.post("/logs", response_model=LogDTO)
+@router.post("saveLogs", response_model=LogDTO)
 def create_log(log: LogDTO, db: Session = Depends(get_db)):
-    db_log = logsEntity(
-        rows=log.rows,
-        log_of=log.log_of,
-        file_name=log.file_name,
-        file_type=log.file_type
-    )
-    db.add(db_log)
-    db.commit()
-    db.refresh(db_log)
-    return db_log
+    try:
+        db_log = logsEntity(
+            rows=log.rows,
+            log_of=log.log_of,
+            file_name=log.file_name,
+            file_type=log.file_type
+        )
+        db.add(db_log)
+        db.commit()
+        db.refresh(db_log)
+        return db_log
+    except Exception as e:
+        db.rollback()  # Ensure to rollback the transaction if an error occurs
+        print(f"Error occurred: {e}")  # Log the exception for debugging
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while creating the log"
+        )
 
 # DELETE: Delete a log by ID
 @router.delete("/logs/{log_id}", response_model=LogDTO)

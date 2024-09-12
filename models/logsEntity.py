@@ -9,3 +9,4 @@ class Log(Base):
     file_name = Column(String)
     file_type = Column(String)
     rows = relationship("Row", back_populates="owner")
+    

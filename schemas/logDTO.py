@@ -9,3 +9,4 @@ class LogDTO(BaseModel):
     file_type: Optional[str] = None
     class Config:
         from_attributes = True
+        arbitrary_types_allowed = True

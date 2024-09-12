@@ -2,7 +2,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from models import rowEntity  # Assuming this contains your Row model
+from models.rowEntity import Row   # Assuming this contains your Row model
 from db.database import get_db
 from schemas.rowDTO import RowDTO
 
@@ -11,13 +11,14 @@ router = APIRouter()
 # GET: Fetch all rows
 @router.get("/rows", response_model=List[RowDTO])
 def read_rows(db: Session = Depends(get_db)):
-    rows = db.query(rowEntity.Row).all()
+    rows = db.query(Row).all()
+    print(rows)
     return rows
 
 # GET: Find rows by log_id
 @router.get("/rows/log/{log_id}", response_model=List[RowDTO])
 def find_rows_by_log_id(log_id: int, db: Session = Depends(get_db)):
-    rows = db.query(rowEntity.Row).filter(rowEntity.Row.log_id == log_id).all()
+    rows = db.query(Row).filter(Row.log_id == log_id).all()
     
     if not rows:
         raise HTTPException(status_code=404, detail="No rows found for the specified log ID")
@@ -27,7 +28,7 @@ def find_rows_by_log_id(log_id: int, db: Session = Depends(get_db)):
 # POST: Create a new row
 @router.post("/rows", response_model=RowDTO)
 async def create_row(row: RowDTO, db: Session = Depends(get_db)):
-    db_row = rowEntity.Row(
+    db_row = Row(
         ip=row.ip,
         url=row.url,
         dateTime=datetime.fromisoformat(row.dateTime),  # Correcting the dateTime conversion
@@ -49,7 +50,7 @@ async def create_rows(rows: List[RowDTO], db: Session = Depends(get_db)):
     created_rows = []
     
     for row in rows:
-        db_row = rowEntity.Row(
+        db_row = Row(
             ip=row.ip,
             url=row.url,
             dateTime=datetime.fromisoformat(row.dateTime),
@@ -74,7 +75,7 @@ async def create_rows(rows: List[RowDTO], db: Session = Depends(get_db)):
 @router.delete("/rows/{row_id}", response_model=RowDTO)
 def delete_row(row_id: int, db: Session = Depends(get_db)):
 
-    db_row = db.query(rowEntity.Row).filter(rowEntity.Row.id == row_id).first()
+    db_row = db.query(Row).filter(Row.id == row_id).first()
     
     if db_row is None:
         raise HTTPException(status_code=404, detail="Row not found")
