@@ -17,7 +17,7 @@ def find_all_logs(db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No logs found")  # Changed to
     
 # GET: get a log by ID
-@router.get("logs/{log_id}",response_model=LogDTO)
+@router.get("/logs/{log_id}",response_model=LogDTO)
 def get_log_by_id(log_id:int,db:Session =Depends(get_db)):
     log = db.query(logsEntity.Log).filter(logsEntity.Log.id == log_id).first()
     if log is None:
