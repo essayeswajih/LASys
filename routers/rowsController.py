@@ -20,10 +20,11 @@ def read_rows(db: Session = Depends(get_db)):
 # GET: Find rows by log_id
 @router.get("/rows/log/{log_id}", response_model=List[RowDTO])
 def find_rows_by_log_id(log_id: int, db: Session = Depends(get_db)):
-    
+
     rows = db.query(Row).filter(Row.log_id == log_id).all()
     if not rows:
         raise HTTPException(status_code=404, detail="No rows found for the specified log ID")
+
     return rows
 
 # POST: Create a new row
