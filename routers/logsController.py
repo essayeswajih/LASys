@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, logger
+import re
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, logger
 from sqlalchemy.orm import Session
 from typing import List
 from models.logsEntity import Log
 from db.database import get_db
 from schemas.logDTO import LogDTO ,LogCreate
+from schemas.rowDTO import RowDTO
 
 import logging
 
@@ -71,3 +73,62 @@ def delete_log(log_id: int, db: Session = Depends(get_db)):
     db.commit()
     
     return db_log
+
+@router.post("/logs/upload")
+async def upload_log(file: UploadFile = File(...)):
+    try:
+        # Read the file contents (it could be large, so handle carefully)
+        contents = await file.read()
+        
+        # Process the Apache log file and extract log entries
+        rows = parse_apache_log(contents.decode())
+        
+        # Create a new Log object
+        log = Log(
+            file_name=file.filename,
+            file_type=file.content_type,
+            rows=rows  # Assuming rows are instances of RowDTO or related ORM models
+        )
+        
+        # Save the log object to the database
+        # db.add(log)
+        # db.commit()
+        
+        # Convert log to Pydantic LogDTO for response
+        log_dto = LogDTO.model_validate(log)
+        
+        return {"message": "Log uploaded successfully", "log": log_dto.model_dump()}
+    except Exception as e:
+        logger.error(f"Error occurred while uploading log: {e}")
+        raise HTTPException(status_code=500, detail="An error occurred while uploading the log.")
+    
+def parse_apache_log(contents: str) -> List[RowDTO]:
+    rows = []
+    try:
+        # Regular expression pattern for Apache log entry (common or combined log format)
+        log_pattern = r'(?P<ip>\S+) \S+ \S+ \[(?P<timestamp>.*?)\] "(?P<method>\S+) (?P<url>\S+) HTTP/\S+" (?P<status_code>\d+) (?P<response_size>\d+) "(?P<referrer>.*?)" "(?P<user_agent>.*?)"'
+        
+        # Process each line of the log file
+        for line in contents.splitlines():
+            match = re.match(log_pattern, line)
+            if match:
+                # Extract data from the log line using named groups
+                log_data = match.groupdict()
+                row = RowDTO(
+                    ip=log_data['ip'],
+                    timestamp=log_data['timestamp'],
+                    method=log_data['method'],
+                    url=log_data['url'],
+                    status_code=log_data['status_code'],
+                    response_size=log_data['response_size'],
+                    referrer=log_data['referrer'],
+                    user_agent=log_data['user_agent']
+                )
+                rows.append(row)
+            else:
+                logger.warning(f"Skipping invalid log line: {line}")
+    except Exception as e:
+        logger.error(f"Error occurred while parsing Apache log: {e}")
+        raise HTTPException(status_code=400, detail="Error parsing the Apache log file.")
+    
+    return rows
