@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List
 from tools.parser import parse_apache_log
@@ -74,7 +75,7 @@ def delete_log(log_id: int, db: Session = Depends(get_db)):
     db.commit()
     
     return db_log
-
+# POST: Upload a new Log File
 @router.post("/logs/upload")
 async def upload_log(file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
@@ -108,3 +109,175 @@ async def upload_log(file: UploadFile = File(...), db: Session = Depends(get_db)
     except Exception as e:
         logger.error(f"Error occurred while uploading log: {e}")
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred while uploading the log: {e}")
+    
+# GET: get a rows by log id
+@router.get("/logs/{log_id}/rows", response_model=list[RowDTO])
+def find_rows_by_log_id(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(Log).filter(Log.id == log_id).first()
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    rows = log.rows
+    return rows
+
+# GET: get top status by log id
+@router.get("/logs/{log_id}/topstatus", response_model=list[dict[int, int]])
+def find_top_rows_by_log_id(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(Log).filter(Log.id == log_id).first()
+    
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Query to get the top 5 most frequent status codes with their counts
+    statuscodes = db.query(Row.status, func.count(Row.status).label('status_count')) \
+        .filter(Row.log_id == log_id) \
+        .group_by(Row.status) \
+        .order_by(func.count(Row.status).desc()) \
+        .limit(5) \
+        .all()
+    
+    # Format the result as a list of dictionaries {status_code: count}
+    top_status_codes = [{status[0]: status[1]} for status in statuscodes]
+    
+    return top_status_codes
+
+# GET: get top rows that have top status by log id
+@router.get("/logs/{log_id}/rows/topstatus", response_model=list[RowDTO])
+def find_top_rows_by_log_id(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(Log).filter(Log.id == log_id).first()
+    
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Query to get the top 5 most frequent status codes
+    statuscodes = db.query(Row.status).filter(Row.log_id == log_id) \
+        .group_by(Row.status) \
+        .order_by(func.count(Row.status).desc()) \
+        .limit(5) \
+        .all()
+    
+    # Extract the status codes from the result
+    top_status_codes = [status[0] for status in statuscodes]
+    
+    # Retrieve rows with those status codes and sort them
+    top_rows = [row for row in log.rows if row.status in top_status_codes]
+    
+    return top_rows
+
+# GET: get top status by log id
+@router.get("/logs/{log_id}/toppaths", response_model=list[dict[str, int]])
+def find_top_paths_by_log_id(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(Log).filter(Log.id == log_id).first()
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Query to get the top 5 most frequent paths with their counts
+    paths = db.query(Row.url, func.count(Row.url).label('path_count')) \
+        .filter(Row.log_id == log_id) \
+        .group_by(Row.url) \
+        .order_by(func.count(Row.url).desc()) \
+        .limit(5) \
+        .all()
+    
+    # Format the result as a list of dictionaries
+    top_paths = [{path[0]: path[1]} for path in paths]
+    
+    return top_paths
+
+
+# GET: get top HTTP methods by log id
+@router.get("/logs/{log_id}/topmethods", response_model=list[dict[str, int]])
+def find_top_methods_by_log_id(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(Log).filter(Log.id == log_id).first()
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Query to get the top 5 most frequent HTTP methods with their counts
+    methods = db.query(Row.method, func.count(Row.method).label('method_count')) \
+        .filter(Row.log_id == log_id) \
+        .group_by(Row.method) \
+        .order_by(func.count(Row.method).desc()) \
+        .limit(5) \
+        .all()
+    
+    # Format the results as a list of dictionaries
+    top_methods = [{method[0]: method[1]} for method in methods]
+    
+    return top_methods
+# GET: get top IP's methods by log id
+@router.get("/logs/{log_id}/topips", response_model=list[dict[str, int]])
+def find_top_ips_by_log_id(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(Log).filter(Log.id == log_id).first()
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Query to get the top 5 most frequent IP addresses with their counts
+    ips = db.query(Row.ip, func.count(Row.ip).label('ip_count')) \
+        .filter(Row.log_id == log_id) \
+        .group_by(Row.ip) \
+        .order_by(func.count(Row.ip).desc()) \
+        .limit(5) \
+        .all()
+    
+    # Format the results as a list of dictionaries
+    top_ips = [{ip[0]: ip[1]} for ip in ips]
+    
+    return top_ips
+
+# GET: get top protocols methods by log id
+@router.get("/logs/{log_id}/topprotocols", response_model=list[dict[str, int]])
+def find_top_protocols_by_log_id(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(Log).filter(Log.id == log_id).first()
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Query to get the top 5 most frequent protocols with their counts
+    protocols = db.query(Row.protocol, func.count(Row.protocol).label('protocol_count')) \
+        .filter(Row.log_id == log_id) \
+        .group_by(Row.protocol) \
+        .order_by(func.count(Row.protocol).desc()) \
+        .limit(5) \
+        .all()
+    
+    # Format the results as a list of dictionaries
+    top_protocols = [{protocol[0]: protocol[1]} for protocol in protocols]
+    
+    return top_protocols
+
+# GET: get top users methods by log id
+@router.get("/logs/{log_id}/topusers", response_model=list[dict[str, int]])
+def find_top_users_by_log_id(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(Log).filter(Log.id == log_id).first()
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Query to get the top 5 most frequent users with their counts
+    users = db.query(Row.user, func.count(Row.user).label('user_count')) \
+        .filter(Row.log_id == log_id) \
+        .group_by(Row.user) \
+        .order_by(func.count(Row.user).desc()) \
+        .limit(5) \
+        .all()
+    
+    # Format the results as a list of dictionaries
+    top_users = [{user[0]: user[1]} for user in users]
+    
+    return top_users
+# GET: get top user agents methods by log id
+@router.get("/logs/{log_id}/topuseragents", response_model=list[dict[str, int]])
+def find_top_user_agents_by_log_id(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(Log).filter(Log.id == log_id).first()
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Query to get the top 5 most frequent user agents with their counts
+    user_agents = db.query(Row.user_agent, func.count(Row.user_agent).label('user_agent_count')) \
+        .filter(Row.log_id == log_id) \
+        .group_by(Row.user_agent) \
+        .order_by(func.count(Row.user_agent).desc()) \
+        .limit(5) \
+        .all()
+    
+    # Format the results as a list of dictionaries
+    top_user_agents = [{user_agent[0]: user_agent[1]} for user_agent in user_agents]
+    
+    return top_user_agents
