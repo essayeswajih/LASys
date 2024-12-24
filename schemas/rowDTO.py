@@ -6,9 +6,10 @@ class RowDTO(BaseModel):
     id: Optional[int] = None
     ip: Optional[str] = None
     url: Optional[str] = None
-    dateTime: Optional[datetime] = None
+    timestamp: Optional[str] = None
     method: Optional[str] = None
     status: Optional[int] = None
+    response_size: Optional[int] = None
     referer: Optional[str] = None
     user_agent: Optional[str] = None
     protocol: Optional[str] = None
@@ -18,17 +19,19 @@ class RowDTO(BaseModel):
     level: Optional[str] = None
     component: Optional[str] = None
     log_id: Optional[int] = None
-
+    remote_logname: Optional[str] = None
+    user: Optional[str] = None
     class Config:
         from_attributes = True  # Allow SQLAlchemy models to be converted to Pydantic models
         arbitrary_types_allowed = True
         
 class RowCreate(BaseModel):
     ip: Optional[str] = None
-    dateTime: Optional[str] = None
+    timestamp: Optional[str] = None
     method: Optional[str] = None
     url: Optional[str] = None
     status: Optional[int] = None
+    response_size: Optional[int] = None
     referer: Optional[str] = None
     user_agent: Optional[str] = None
     protocol : Optional[str] = None
@@ -37,6 +40,8 @@ class RowCreate(BaseModel):
     message : Optional[str] = None
     level : Optional[str] = None
     component : Optional[str] = None
+    remote_logname: Optional[str] = None
+    user: Optional[str] = None
     log_id: Optional[int] = None
 
     class Config:

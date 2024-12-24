@@ -33,11 +33,12 @@ async def create_row(row: RowCreate, db: Session = Depends(get_db)):
         db_row = Row(
             ip=row.ip,
             url=row.url,
-            dateTime=datetime.fromisoformat(row.dateTime),  # Correcting the dateTime conversion
+            timestamp=row.timestamp,  # Correcting the dateTime conversion
             method=row.method,
             status=row.status,
             referer=row.referer,
             user_agent=row.user_agent,
+            response_size=row.response_size,
             log_id=row.log_id  # Make sure log_id exists in the RowDTO schema
         )
 
@@ -48,9 +49,10 @@ async def create_row(row: RowCreate, db: Session = Depends(get_db)):
         return RowDTO(
             ip=db_row.ip,
             url=db_row.url,
-            dateTime=db_row.dateTime.isoformat(),  # Ensure datetime is returned as ISO string
+            timestamp=db_row.timestamp,  # Ensure datetime is returned as ISO string
             method=db_row.method,
             status=db_row.status,
+            response_size=db_row.response_size,
             referer=db_row.referer,
             user_agent=db_row.user_agent,
             log_id=db_row.log_id
@@ -72,9 +74,10 @@ async def create_rows(rows: List[RowDTO], db: Session = Depends(get_db)):
         db_row = Row(
             ip=row.ip,
             url=row.url,
-            dateTime=datetime.fromisoformat(row.dateTime),
+            timestamp=row.timestamp,
             method=row.method,
             status=row.status,
+            response_size=row.response_size,
             referer=row.referer,
             user_agent=row.user_agent,
             log_id=row.log_id

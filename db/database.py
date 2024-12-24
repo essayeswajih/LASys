@@ -15,3 +15,6 @@ def get_db():
         yield db
     finally:
         db.close()
+
+Base.metadata.create_all(bind=engine)
+#Base.metadata.update_all(bind=engine)
