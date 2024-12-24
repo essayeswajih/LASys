@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class RowDTO(BaseModel):
-    id: int
+    id: Optional[int] = None
     ip: Optional[str] = None
     url: Optional[str] = None
     dateTime: Optional[datetime] = None

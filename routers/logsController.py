@@ -1,7 +1,8 @@
-import re
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, logger
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from typing import List
+from tools.parser import parse_apache_log
+from models.rowEntity import Row
 from models.logsEntity import Log
 from db.database import get_db
 from schemas.logDTO import LogDTO ,LogCreate
@@ -75,60 +76,35 @@ def delete_log(log_id: int, db: Session = Depends(get_db)):
     return db_log
 
 @router.post("/logs/upload")
-async def upload_log(file: UploadFile = File(...)):
+async def upload_log(file: UploadFile = File(...), db: Session = Depends(get_db)):
     try:
-        # Read the file contents (it could be large, so handle carefully)
+        if not file:
+            raise HTTPException(status_code=400, detail="No file uploaded.")
+
+        # Read the file contents
         contents = await file.read()
+
+        # Process the Apache log file
+        row_dtos = parse_apache_log(contents.decode())
         
-        # Process the Apache log file and extract log entries
-        rows = parse_apache_log(contents.decode())
+        # Convert Pydantic Row to SQLAlchemy Row objects
+        rows = [Row(**row_dto.model_dump()) for row_dto in row_dtos]
         
-        # Create a new Log object
+        # Create and save the Log object
         log = Log(
             file_name=file.filename,
-            file_type=file.content_type,
-            rows=rows  # Assuming rows are instances of RowDTO or related ORM models
+            file_type="apache",
+            rows=rows  # Associating ORM rows with the log
         )
-        
-        # Save the log object to the database
-        # db.add(log)
-        # db.commit()
-        
-        # Convert log to Pydantic LogDTO for response
+        db.add(log)
+        db.commit()
+        db.refresh(log)
+
+        # Convert log to LogDTO for response
         log_dto = LogDTO.model_validate(log)
-        
         return {"message": "Log uploaded successfully", "log": log_dto.model_dump()}
+    except HTTPException as he:
+        raise he  # Re-raise HTTPExceptions as-is
     except Exception as e:
         logger.error(f"Error occurred while uploading log: {e}")
-        raise HTTPException(status_code=500, detail="An error occurred while uploading the log.")
-    
-def parse_apache_log(contents: str) -> List[RowDTO]:
-    rows = []
-    try:
-        # Regular expression pattern for Apache log entry (common or combined log format)
-        log_pattern = r'(?P<ip>\S+) \S+ \S+ \[(?P<timestamp>.*?)\] "(?P<method>\S+) (?P<url>\S+) HTTP/\S+" (?P<status_code>\d+) (?P<response_size>\d+) "(?P<referrer>.*?)" "(?P<user_agent>.*?)"'
-        
-        # Process each line of the log file
-        for line in contents.splitlines():
-            match = re.match(log_pattern, line)
-            if match:
-                # Extract data from the log line using named groups
-                log_data = match.groupdict()
-                row = RowDTO(
-                    ip=log_data['ip'],
-                    timestamp=log_data['timestamp'],
-                    method=log_data['method'],
-                    url=log_data['url'],
-                    status_code=log_data['status_code'],
-                    response_size=log_data['response_size'],
-                    referrer=log_data['referrer'],
-                    user_agent=log_data['user_agent']
-                )
-                rows.append(row)
-            else:
-                logger.warning(f"Skipping invalid log line: {line}")
-    except Exception as e:
-        logger.error(f"Error occurred while parsing Apache log: {e}")
-        raise HTTPException(status_code=400, detail="Error parsing the Apache log file.")
-    
-    return rows
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while uploading the log: {e}")
