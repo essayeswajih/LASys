@@ -1,4 +1,6 @@
+import subprocess
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List
@@ -281,3 +283,56 @@ def find_top_user_agents_by_log_id(log_id: int, db: Session = Depends(get_db)):
     top_user_agents = [{user_agent[0]: user_agent[1]} for user_agent in user_agents]
     
     return top_user_agents
+
+
+class FilterRequest(BaseModel):
+    file_name: str
+    sed_command: str
+
+# POST: get filtred rows by log name and sed command
+@router.post("/logs/rows/filtred", response_model=str)
+def find_filtred_rows_by_log_name_and_sed_command(
+    request: FilterRequest,  # Use the request body model
+    db: Session = Depends(get_db)
+):
+    file_name = request.file_name
+    sed_command = request.sed_command
+
+    # Fetch the log by file name
+    log = db.query(Log).filter(Log.file_name == file_name).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    # Check if the log has rows
+    if not log.rows:
+        raise HTTPException(status_code=400, detail="No rows found for the log")
+
+    # Convert rows to a formatted string suitable for sed processing
+    try:
+        rows_data = "\n".join(
+            f"{row.ip} {row.remote_logname} {row.user} {row.timestamp} "
+            f"{row.method} {row.url} {row.protocol} {row.status} "
+            f"{row.response_size if row.response_size else '0'} {row.referer if row.referer else '-'} {row.user_agent}"
+            for row in log.rows
+        )
+    except AttributeError as e:
+        raise HTTPException(status_code=500, detail=f"Error formatting rows: {e} , {(log.rows[0])}")
+
+    try:
+        # Use subprocess to apply the sed command on rows_data
+        process = subprocess.run(
+            ["sed", sed_command],
+            input=rows_data,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        filtered_output = process.stdout
+
+        return filtered_output
+
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error applying sed command: {e.stderr or str(e)}"
+        )

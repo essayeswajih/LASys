@@ -39,7 +39,7 @@ def parse_apache_log(contents: str) -> List[RowDTO]:
                     url=log_data['url'],
                     status=status_code,
                     response_size=response_size,
-                    referrer=log_data['referrer'],
+                    referer=log_data['referrer'],
                     user_agent=log_data['user_agent'],
                     remote_logname=log_data['remote_logname'],
                     user=log_data['user'],
