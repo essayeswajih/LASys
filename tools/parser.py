@@ -43,7 +43,7 @@ def parse_apache_log(contents: str) -> List[RowDTO]:
                     user_agent=log_data['user_agent'],
                     remote_logname=log_data['remote_logname'],
                     user=log_data['user'],
-                    protocol="HTTP/"+log_data['protocol_version']  # Corrected to use 'protocol_version'
+                    protocol="HTTP/"+log_data['protocol_version']
                 )
                 rows.append(row_dto)
             except Exception as e:
