@@ -11,6 +11,7 @@ Base.metadata.create_all(bind=engine)
 app.include_router(rowsRouter, prefix="/api/v1")
 app.include_router(logsRouter, prefix="/api/v1")
 
+
 @app.get("/")
 def read_root():
     return {"message": "API is working"}
