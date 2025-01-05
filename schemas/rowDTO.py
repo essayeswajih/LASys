@@ -21,6 +21,9 @@ class RowDTO(BaseModel):
     log_id: Optional[int] = None
     remote_logname: Optional[str] = None
     user: Optional[str] = None
+    request: Optional[str] = None
+    pid_tid: Optional[str] = None
+
     class Config:
         from_attributes = True  # Allow SQLAlchemy models to be converted to Pydantic models
         arbitrary_types_allowed = True

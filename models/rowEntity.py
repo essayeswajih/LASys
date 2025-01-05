@@ -1,3 +1,4 @@
+from urllib import request
 from sqlalchemy import Boolean, Integer, String, Column,DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from db.database import Base
@@ -23,6 +24,9 @@ class Row(Base):
     component = Column(String, nullable=True)    # Component or service generating the log
     user = Column(String, nullable=True)
     remote_logname = Column(String, nullable=True)
+
+    request = Column(String, nullable=True)
+    pid_tid = Column(String, nullable=True)
 
     log_id = Column(Integer, ForeignKey('log.id'))
     owner = relationship("Log", back_populates="rows")
