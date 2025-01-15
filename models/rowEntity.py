@@ -1,5 +1,4 @@
-from urllib import request
-from sqlalchemy import Boolean, Integer, String, Column,DateTime, ForeignKey
+from sqlalchemy import Integer, String, Column, ForeignKey
 from sqlalchemy.orm import relationship
 from db.database import Base
 
