@@ -34,7 +34,7 @@ app.include_router(authRouter)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust allowed origins as needed
+    allow_origins=["http://localhost:4200"],  # Adjust allowed origins as needed
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
