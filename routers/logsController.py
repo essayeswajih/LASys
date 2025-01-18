@@ -336,3 +336,20 @@ def find_filtred_rows_by_log_name_and_sed_command(
             status_code=400,
             detail=f"Error applying sed command: {e.stderr or str(e)}"
         )
+    
+# GET: get recent rows by log id
+@router.get("/logs/{log_id}/recentrows", response_model=list[RowDTO])
+def find_top_rows_by_log_id(log_id: int, db: Session = Depends(get_db)):
+    log = db.query(Log).filter(Log.id == log_id).first()
+    
+    if log is None:
+        raise HTTPException(status_code=404, detail="Log not found")
+    
+    # Query to get the recent 10 rows ordered by row id
+    rows = db.query(Row).filter(Row.log_id == log_id) \
+        .order_by(Row.id.desc()) \
+        .limit(10) \
+        .all()
+    
+    # Return rows directly
+    return rows
